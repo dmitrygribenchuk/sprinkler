@@ -18,6 +18,11 @@
 #define AIO_USERNAME    "FlespiToken TOKEN"
 #define AIO_KEY         ""
 
+#define POMP_TOPIC      "/sprinkler/pomp"
+#define SOIL_MOISTURE_SENSOR_1_TOPIC "/sprinkler/sensors/1"
+#define SOIL_MOISTURE_SENSOR_2_TOPIC "/sprinkler/sensors/2"
+#define SOIL_MOISTURE_SENSOR_3_TOPIC "/sprinkler/sensors/3"
+
 /************ Global State (you don't need to change this!) ******************/
 
 // Create an ESP8266 WiFiClient class to connect to the MQTT server.
@@ -118,19 +123,19 @@ void loop() {
         sensor1Value = digitalRead(D0);
         Serial.print("Send data from sensor 1: ");
         Serial.println(sensor1Value);
-        mqtt.publish("/sprinkler/sensors/1", String(sensor1Value).c_str(), true);
+	mqtt.publish(SOIL_MOISTURE_SENSOR_1_TOPIC, String(sensor1Value).c_str(), true);
 
         //read and send from 2 sensor
         sensor2Value = digitalRead(D1);
         Serial.print("Send data from sensor 2: ");
         Serial.println(sensor2Value);
-        mqtt.publish("/sprinkler/sensors/2", String(sensor2Value).c_str(), true);
+        mqtt.publish(SOIL_MOISTURE_SENSOR_2_TOPIC, String(sensor2Value).c_str(), true);
 
         //read and send from 3 sensor
         sensor3Value = digitalRead(D2);
         Serial.print("Send data from sensor 3: ");
         Serial.println(sensor3Value);
-        mqtt.publish("/sprinkler/sensors/3", String(sensor3Value).c_str(), true);
+        mqtt.publish(SOIL_MOISTURE_SENSOR_3_TOPIC, String(sensor3Value).c_str(), true);
 
         lastMsg = now;
   }
