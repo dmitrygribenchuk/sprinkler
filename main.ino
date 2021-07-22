@@ -1,10 +1,23 @@
+/***************************************************
+  Adafruit MQTT Library ESP8266 Example
+
+  Must use ESP8266 Arduino from:
+    https://github.com/esp8266/Arduino
+
+  Works great with Adafruit's Huzzah ESP board & Feather
+  ----> https://www.adafruit.com/product/2471
+  ----> https://www.adafruit.com/products/2821
+
+  Adafruit invests time and resources providing this open source code,
+  please support Adafruit and open-source hardware by purchasing
+  products from Adafruit!
+
+  Written by Tony DiCola for Adafruit Industries.
+  MIT license, all text above must be included in any redistribution
+ ****************************************************/
 #include <ESP8266WiFi.h>
 #include "Adafruit_MQTT.h"
 #include "Adafruit_MQTT_Client.h"
-
-// the on off button feed turns this LED on/off
-#define LED 2  
-// the slider feed sets the PWM output of this pin
 
 /************************* WiFi Access Point *********************************/
 
@@ -18,11 +31,16 @@
 #define AIO_USERNAME    "FlespiToken TOKEN"
 #define AIO_KEY         ""
 
-#define POMP_TOPIC      "/sprinkler/pomp"
+#define POMP_TOPIC                   "/sprinkler/pomp"
+#define POMP_PIN                      D5 
 #define SOIL_MOISTURE_SENSOR_1_TOPIC "/sprinkler/sensors/1"
 #define SOIL_MOISTURE_SENSOR_2_TOPIC "/sprinkler/sensors/2"
 #define SOIL_MOISTURE_SENSOR_3_TOPIC "/sprinkler/sensors/3"
 
+#define SOIL_MOISTURE_SENSOR_1_PIN    D0
+#define SOIL_MOISTURE_SENSOR_2_PIN    D1
+#define SOIL_MOISTURE_SENSOR_3_PIN    D2
+  
 /************ Global State (you don't need to change this!) ******************/
 
 // Create an ESP8266 WiFiClient class to connect to the MQTT server.
@@ -36,7 +54,7 @@ Adafruit_MQTT_Client mqtt(&client, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO
 /****************************** Feeds ***************************************/
 
 // Notice MQTT paths for AIO follow the form: <username>/feeds/<feedname>
-Adafruit_MQTT_Subscribe onoffbutton = Adafruit_MQTT_Subscribe(&mqtt, "/sprinkler/pomp");
+Adafruit_MQTT_Subscribe pomp = Adafruit_MQTT_Subscribe(&mqtt, POMP_TOPIC);
 
 /*************************** Sketch Code ************************************/
 
@@ -44,12 +62,12 @@ Adafruit_MQTT_Subscribe onoffbutton = Adafruit_MQTT_Subscribe(&mqtt, "/sprinkler
 // for some reason (only affects ESP8266, likely an arduino-builder bug).
 
 void setup() {
-  pinMode(LED, OUTPUT);
-  pinMode(D0, INPUT);
-  pinMode(D1, INPUT);
-  pinMode(D2, INPUT);
+  pinMode(SOIL_MOISTURE_SENSOR_1_PIN, INPUT);
+  pinMode(SOIL_MOISTURE_SENSOR_2_PIN, INPUT);
+  pinMode(SOIL_MOISTURE_SENSOR_3_PIN, INPUT);
+  pinMode(POMP_PIN, OUTPUT);
 
-  Serial.begin(115200);
+  Serial.begin(9600);
   delay(10);
 
   // Connect to WiFi access point.
@@ -68,9 +86,8 @@ void setup() {
   Serial.println("IP address: "); Serial.println(WiFi.localIP());
 
   // Setup MQTT subscription for onoff & slider feed.
-  mqtt.subscribe(&onoffbutton);
+  mqtt.subscribe(&pomp);
 }
-
 
 void MQTT_connect(Adafruit_MQTT_Client mqtt) {
   int8_t ret;
@@ -120,19 +137,19 @@ void loop() {
   if (now - lastMsg > sensorsDelay) {
         //need to use loop as well
         //read and send from 1 sensor
-        sensor1Value = digitalRead(D0);
+        sensor1Value = digitalRead(SOIL_MOISTURE_SENSOR_1_PIN);
         Serial.print("Send data from sensor 1: ");
         Serial.println(sensor1Value);
-	mqtt.publish(SOIL_MOISTURE_SENSOR_1_TOPIC, String(sensor1Value).c_str(), true);
+        mqtt.publish(SOIL_MOISTURE_SENSOR_1_TOPIC, String(sensor1Value).c_str(), true);
 
         //read and send from 2 sensor
-        sensor2Value = digitalRead(D1);
+        sensor2Value = digitalRead(SOIL_MOISTURE_SENSOR_2_PIN);
         Serial.print("Send data from sensor 2: ");
         Serial.println(sensor2Value);
         mqtt.publish(SOIL_MOISTURE_SENSOR_2_TOPIC, String(sensor2Value).c_str(), true);
 
         //read and send from 3 sensor
-        sensor3Value = digitalRead(D2);
+        sensor3Value = digitalRead(SOIL_MOISTURE_SENSOR_3_PIN);
         Serial.print("Send data from sensor 3: ");
         Serial.println(sensor3Value);
         mqtt.publish(SOIL_MOISTURE_SENSOR_3_TOPIC, String(sensor3Value).c_str(), true);
@@ -143,17 +160,15 @@ void loop() {
   while ((subscription = mqtt.readSubscription(1000))) {
 
     // Check if its the onoff button feed
-    if (subscription == &onoffbutton) {
-      //Serial.print(F("On-Off button: "));
-      //Serial.println((char *)onoffbutton.lastread);
+    if (subscription == &pomp) {
       
-      if (strcmp((char *)onoffbutton.lastread, "1") == 0) {
+      if (strcmp((char *)pomp.lastread, "1") == 0) {
         Serial.println("Enable Water Pomp");
-        digitalWrite(LED, HIGH); 
+        analogWrite(POMP_PIN, 8);
         delay(pompDelay);
-        digitalWrite(LED, LOW);
+        digitalWrite(POMP_PIN, LOW);
         Serial.println("Disable Water Pomp");
-        mqtt.publish("/sprinkler/pomp", String(0).c_str(), true);
+        mqtt.publish(POMP_TOPIC, String(0).c_str(), true);
       }
     }
   }
