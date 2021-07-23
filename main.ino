@@ -16,13 +16,18 @@
 
 #define POMP_TOPIC                   "/sprinkler/pomp"
 #define POMP_PIN                      D5 
-#define SOIL_MOISTURE_SENSOR_1_TOPIC "/sprinkler/sensors/1"
-#define SOIL_MOISTURE_SENSOR_2_TOPIC "/sprinkler/sensors/2"
-#define SOIL_MOISTURE_SENSOR_3_TOPIC "/sprinkler/sensors/3"
 
 #define SOIL_MOISTURE_SENSOR_1_PIN    D0
 #define SOIL_MOISTURE_SENSOR_2_PIN    D1
 #define SOIL_MOISTURE_SENSOR_3_PIN    D2
+
+uint32_t x=0;
+long lastMsg = 0;
+long sensorsDelay = 60000; // check sensors every minute
+int sensorsValue[3] = {0,0,0};
+String soilMoistureSensorsTopic = "/sprinkler/sensors/";
+const char soilMoistureSensorsPin[] = { SOIL_MOISTURE_SENSOR_1_PIN, SOIL_MOISTURE_SENSOR_2_PIN, SOIL_MOISTURE_SENSOR_3_PIN };
+int pompDelay = 10000;
   
 /************ Global State (you don't need to change this!) ******************/
 
@@ -45,9 +50,9 @@ Adafruit_MQTT_Subscribe pomp = Adafruit_MQTT_Subscribe(&mqtt, POMP_TOPIC);
 // for some reason (only affects ESP8266, likely an arduino-builder bug).
 
 void setup() {
-  pinMode(SOIL_MOISTURE_SENSOR_1_PIN, INPUT);
-  pinMode(SOIL_MOISTURE_SENSOR_2_PIN, INPUT);
-  pinMode(SOIL_MOISTURE_SENSOR_3_PIN, INPUT);
+  for (int i=0; i<=sizeof(soilMoistureSensorsPin); i++) {
+    pinMode(soilMoistureSensorsPin[i], INPUT);
+  }
   pinMode(POMP_PIN, OUTPUT);
 
   Serial.begin(9600);
@@ -96,14 +101,6 @@ void MQTT_connect(Adafruit_MQTT_Client mqtt) {
   Serial.println("MQTT Connected!");
 }
 
-uint32_t x=0;
-long lastMsg = 0;
-long sensorsDelay = 60000; // check sensors every minute
-int sensor1Value = 0; // need to use array
-int sensor2Value = 0;
-int sensor3Value = 0;
-int pompDelay = 10000;
-
 void loop() {
   // Ensure the connection to the MQTT server is alive (this will make the first
   // connection and automatically reconnect when disconnected).  See the MQTT_connect
@@ -118,26 +115,13 @@ void loop() {
   long now = millis();
 
   if (now - lastMsg > sensorsDelay) {
-        //need to use loop as well
-        //read and send from 1 sensor
-        sensor1Value = digitalRead(SOIL_MOISTURE_SENSOR_1_PIN);
-        Serial.print("Send data from sensor 1: ");
-        Serial.println(sensor1Value);
-        mqtt.publish(SOIL_MOISTURE_SENSOR_1_TOPIC, String(sensor1Value).c_str(), true);
-
-        //read and send from 2 sensor
-        sensor2Value = digitalRead(SOIL_MOISTURE_SENSOR_2_PIN);
-        Serial.print("Send data from sensor 2: ");
-        Serial.println(sensor2Value);
-        mqtt.publish(SOIL_MOISTURE_SENSOR_2_TOPIC, String(sensor2Value).c_str(), true);
-
-        //read and send from 3 sensor
-        sensor3Value = digitalRead(SOIL_MOISTURE_SENSOR_3_PIN);
-        Serial.print("Send data from sensor 3: ");
-        Serial.println(sensor3Value);
-        mqtt.publish(SOIL_MOISTURE_SENSOR_3_TOPIC, String(sensor3Value).c_str(), true);
-
-        lastMsg = now;
+      for (int i=0; i< sizeof(soilMoistureSensorsPin); i++) {
+        //read and send from sensors
+        sensorsValue[i] = digitalRead(soilMoistureSensorsPin[i]);
+        Serial.println("Send data from sensor " + String(i+1) + ": " + String(sensorsValue[i]));
+        mqtt.publish((soilMoistureSensorsTopic + String(i+1)).c_str(), String(sensorsValue[i]).c_str(), true);
+      }
+      lastMsg = now;
   }
  
   while ((subscription = mqtt.readSubscription(1000))) {
