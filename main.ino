@@ -98,7 +98,7 @@ void MQTT_connect(Adafruit_MQTT_Client mqtt) {
 
 uint32_t x=0;
 long lastMsg = 0;
-long sensorsDelay = 60000;
+long sensorsDelay = 60000; // check sensors every minute
 int sensor1Value = 0; // need to use array
 int sensor2Value = 0;
 int sensor3Value = 0;
@@ -142,7 +142,7 @@ void loop() {
  
   while ((subscription = mqtt.readSubscription(1000))) {
 
-    // Check if its the onoff button feed
+    // Check if its the waterpomp feed
     if (subscription == &pomp) {
       
       if (strcmp((char *)pomp.lastread, "1") == 0) {
@@ -150,7 +150,7 @@ void loop() {
         analogWrite(POMP_PIN, 8);
         delay(pompDelay);
         digitalWrite(POMP_PIN, LOW);
-        Serial.println("Disable Water Pomp");
+        Serial.println("Disable Water Pomp by timeout");
         mqtt.publish(POMP_TOPIC, String(0).c_str(), true);
       }
     }
