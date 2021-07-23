@@ -16,6 +16,7 @@
 
 #define POMP_TOPIC                   "/sprinkler/pomp"
 #define POMP_PIN                      D5 
+#define POMP_POWER		      8
 
 #define SOIL_MOISTURE_SENSOR_1_PIN    D0
 #define SOIL_MOISTURE_SENSOR_2_PIN    D1
@@ -131,7 +132,7 @@ void loop() {
       
       if (strcmp((char *)pomp.lastread, "1") == 0) {
         Serial.println("Enable Water Pomp");
-        analogWrite(POMP_PIN, 8);
+        analogWrite(POMP_PIN, POMP_POWER);
         delay(pompDelay);
         digitalWrite(POMP_PIN, LOW);
         Serial.println("Disable Water Pomp by timeout");
